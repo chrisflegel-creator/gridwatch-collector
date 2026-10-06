@@ -1,0 +1,56 @@
+name: Test Con Edison connection
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check public outage reports
+        run: |
+          node --input-type=module <<'JS'
+          const base = "https://outagemap.coned.com/resources/data/external/interval_generation_data/";
+          async function get(path) {
+            const response = await fetch(base + path + "?_=" + Date.now(), {
+              redirect: "error",
+              signal: AbortSignal.timeout(20000),
+              headers: {
+                Accept: "application/json, text/javascript, */*; q=0.01",
+                Referer: "https://outagemap.coned.com/external/default.html"
+              }
+            });
+            console.log(path + ": HTTP " + response.status);
+            if (!response.ok) throw Error("Request failed");
+            return response.json();
+          }
+          const metadata = await get("metadata.json");
+          const directory = metadata.directory;
+          if (!/^\d{4}(?:_\d{2}){5}$/.test(directory))
+            throw Error("Invalid publication directory");
+
+          const [summary, nyc, westchester] = await Promise.all(
+            ["data.json", "report_nyc.json", "report_westchester.json"]
+              .map(file => get(directory + "/" + file))
+          );
+          const areas = [nyc, westchester].flatMap(
+            report => report.file_data.areas[0].areas
+          );
+          const count = value => {
+            if (value?.mask || value?.masked ||
+                !Number.isSafeInteger(value?.val) || value.val < 0)
+              throw Error("Invalid or masked customer count");
+            return value.val;
+          };
+          const total = areas.reduce((sum, area) => sum + count(area.cust_a), 0);
+          if (areas.length !== 6 ||
+              total !== count(summary.summaryFileData.total_cust_a))
+            throw Error("County totals do not reconcile");
+
+          console.log("ACCESS TEST PASSED");
+          console.log("Publication: " + summary.summaryFileData.date_generated);
+          console.log("Affected customer accounts: " + total);
+          JS
