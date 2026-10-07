@@ -21,7 +21,7 @@ jobs:
           node --input-type=module <<'JS'
           import {mkdir,writeFile} from 'node:fs/promises';
           const urls=['https://tracker.centerpointenergy.com/map/app.78ab3b90334415369860.centerpoint-map-1.5.2.bundle.js','https://outagemap.epelectric.com/'];
-          const reports=await Promise.all(urls.map(async url=>{try{const r=await fetch(url,{signal:AbortSignal.timeout(25000)}),body=await r.text();return {url,status:r.status,length:body.length,body:url.endsWith('.js')?undefined:body,urls:[...new Set(body.match(/https?:[^"'<>\\s]+/g)??[])].filter(x=>!x.includes('www.w3.org')).slice(-100),contexts:[...body.matchAll(/.{0,100}(?:api\\/|county|lastUpdated|customersOut|config\\.json|serviceArea|ServiceArea|dataEndpoint|outageEndpoint|datacapable|DataCapable|regionConfig).{0,220}/gi)].map(x=>x[0]).slice(-150)};}catch(e){return {url,error:e.message};}}));
+          const reports=await Promise.all(urls.map(async url=>{try{const r=await fetch(url,{signal:AbortSignal.timeout(25000)}),body=await r.text();return {url,status:r.status,length:body.length,body:url.endsWith('.js')?undefined:body,urls:[...new Set(body.match(/https?:[^"'<>\s]+/g)??[])].filter(x=>!x.includes('www.w3.org')).slice(-100),contexts:[...body.matchAll(/.{0,100}(?:api\/|county|lastUpdated|customersOut|config\.json|serviceArea|ServiceArea|dataEndpoint|outageEndpoint|datacapable|DataCapable|regionConfig).{0,220}/gi)].map(x=>x[0]).slice(-150)};}catch(e){return {url,error:e.message};}}));
           await mkdir('public',{recursive:true});await writeFile('public/ca-tx-oh-inspect.json',JSON.stringify({collectedAt:new Date().toISOString(),reports}));console.log(reports.map(x=>({url:x.url,status:x.status,length:x.length})));
           JS
       - name: Save public inspection
