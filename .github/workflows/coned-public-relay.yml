@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: coned-public-relay
+  group: utility-relay-publications
   cancel-in-progress: false
 jobs:
   collect:
