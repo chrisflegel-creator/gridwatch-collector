@@ -1,0 +1,37 @@
+name: Test additional public utility feeds
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/additional-feed-test.yml'
+permissions:
+  contents: write
+concurrency:
+  group: utility-relay-publications
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check public reports outside Gridwatch hosting
+        run: |
+          node --input-type=module <<'JS'
+          import {mkdir,writeFile} from 'node:fs/promises';
+          const checks={};
+          const urls={oppdEvents:'https://myoppd-svc.cxlive.ai/ServiceAPI/api/1/outage/alloutages/2/1/false',oppdCounties:'https://myoppd-svc.cxlive.ai/ServiceAPI/api/1/outage/AllOutagesListView/2/1/false',oppdAccounts:'https://myoppd-svc.cxlive.ai/ServiceAPI/api/1/Account/Count',mlgw:'https://outagemap.mlgw.org/OutageSummary.php'};
+          await Promise.all(Object.entries(urls).map(async([id,url])=>{try{const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(25000),headers:{Accept:'application/json,text/html','Cache-Control':'no-cache'}});const body=await r.text();console.log(id+': HTTP '+r.status);checks[id]={status:r.status,date:r.headers.get('date'),body:r.ok?body:null};}catch(e){checks[id]={error:e.message};console.log(id+': '+e.message)}}));
+          await mkdir('public',{recursive:true});
+          await writeFile('public/additional-feed-access-test.json',JSON.stringify({schemaVersion:1,checkedAt:new Date().toISOString(),checks}));
+          JS
+      - name: Save public access-test results
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/additional-feed-access-test.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save public utility access test'
+            git pull --rebase
+            git push
+          fi
