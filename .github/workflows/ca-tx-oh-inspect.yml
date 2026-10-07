@@ -20,8 +20,8 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import {mkdir,writeFile} from 'node:fs/promises';
-          const base='https://centerpoint.datacapable.com/datacapable/v2/p/centerpoint/map/';
-          const urls=[base+'stats',base+'events',base+'regions?type=COUNTY'];
+          const base='https://centerpoint.datacapable.com/datacapable/v2/p/centerpoint/';
+          const urls=[base+'map/regions?type=PRIMARY',base+'r/2/map/stats',base+'r/2/map/events',base+'r/2/map/events/count?types=COUNTY'];
           const reports=await Promise.all(urls.map(async url=>{try{const r=await fetch(url,{signal:AbortSignal.timeout(25000)});return {url,status:r.status,body:await r.text()};}catch(e){return {url,error:e.message};}}));
           await mkdir('public',{recursive:true});await writeFile('public/ca-tx-oh-inspect.json',JSON.stringify({collectedAt:new Date().toISOString(),reports}));console.log(reports.map(x=>({url:x.url,status:x.status,size:x.body?.length})));
           JS
