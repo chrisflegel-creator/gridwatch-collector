@@ -1,0 +1,41 @@
+name: Collect public Nebraska and Tennessee reports
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/additional-public-relay.mjs'
+      - 'lib/public-relay-validation.mjs'
+      - '.github/workflows/additional-public-relay.yml'
+  schedule:
+    - cron: '17,47 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: utility-relay-publications
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Collect and validate public utility reports
+        id: collect
+        continue-on-error: true
+        run: node scripts/additional-public-relay.mjs
+      - name: Save valid publications
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/oppd.json public/mlgw.json --ignore-errors || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update public OPPD and MLGW publications'
+            git pull --rebase
+            git push
+          fi
+      - name: Report collection failures
+        if: steps.collect.outcome == 'failure'
+        run: exit 1
