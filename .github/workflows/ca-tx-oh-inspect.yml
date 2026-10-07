@@ -1,4 +1,4 @@
-name: Inspect public CA TX OH maps
+name: Inspect public CenterPoint county validation
 on:
   workflow_dispatch:
   push:
@@ -22,7 +22,7 @@ jobs:
           import {mkdir,writeFile} from 'node:fs/promises';
           const root='https://centerpoint.datacapable.com/datacapable/v2',base=root+'/p/centerpoint/r/texas/map/';
           const urls=[base+'app/settings',base+'stats',root+'/cache/p/centerpoint/r/texas/map/events',base+'events/count?types=COUNTY','https://riversideca.gov/outages/v3/index.html'];
-          const reports=await Promise.all(urls.map(async url=>{try{const r=await fetch(url,{signal:AbortSignal.timeout(25000)});return {url,status:r.status,body:await r.text()};}catch(e){return {url,error:e.message};}}));
+          const reports=await Promise.all(urls.filter(url=>url.includes('centerpoint.datacapable.com')).map(async url=>{try{const r=await fetch(url+(url.includes('?')?'&':'?')+'_='+Date.now(),{signal:AbortSignal.timeout(25000)});return {url,status:r.status,body:await r.text()};}catch(e){return {url,error:e.message};}}));
           await mkdir('public',{recursive:true});await writeFile('public/ca-tx-oh-inspect.json',JSON.stringify({collectedAt:new Date().toISOString(),reports}));console.log(reports.map(x=>({url:x.url,status:x.status,size:x.body?.length})));
           JS
       - name: Save public inspection
