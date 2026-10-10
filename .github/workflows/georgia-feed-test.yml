@@ -1,0 +1,39 @@
+name: Check Georgia public outage feeds
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/georgia-feed-test.yml'
+permissions:
+  contents: write
+concurrency:
+  group: utility-relay-publications
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch official public reports
+        run: |
+          node --input-type=module <<'JS'
+          import {mkdir,writeFile} from 'node:fs/promises';
+          const checks={};
+          const urls={flintSummary:'https://outage.flintemc.com/data/outageSummary.json',flintEvents:'https://outage.flintemc.com/data/outages.json',flintBounds:'https://outage.flintemc.com/data/boundaries.json',jackson:'https://outagemap.jacksonemc.com/'};
+          await Promise.all(Object.entries(urls).map(async([id,url])=>{
+            try{const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(25000)});checks[id]={status:r.status,date:r.headers.get('date'),body:r.ok?(await r.text()).slice(0,1000000):null};}
+            catch(e){checks[id]={error:e.message,cause:e.cause?.code};}
+          }));
+          await mkdir('public',{recursive:true});await writeFile('public/georgia-feed-access-test.json',JSON.stringify({schemaVersion:1,checkedAt:new Date().toISOString(),checks}));
+          JS
+      - name: Save public results
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/georgia-feed-access-test.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save Georgia public outage feed test'
+            git pull --rebase
+            git push
+          fi
