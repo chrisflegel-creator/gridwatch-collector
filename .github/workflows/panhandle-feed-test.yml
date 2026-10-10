@@ -1,0 +1,39 @@
+name: Check Escambia River public outage map
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/panhandle-feed-test.yml'
+permissions:
+  contents: write
+concurrency:
+  group: utility-relay-publications
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch official linked map
+        run: |
+          node --input-type=module <<'JS'
+          import {mkdir,writeFile} from 'node:fs/promises';
+          const checks={};
+          for(const [id,url] of Object.entries({erec:'http://12.21.156.105:5050/'})){
+            try{const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(25000)});checks[id]={status:r.status,date:r.headers.get('date'),body:r.ok?(await r.text()).slice(0,200000):null};}
+            catch(e){checks[id]={error:e.message,cause:e.cause?.code};}
+          }
+          await mkdir('public',{recursive:true});
+          await writeFile('public/panhandle-feed-access-test.json',JSON.stringify({schemaVersion:1,checkedAt:new Date().toISOString(),checks}));
+          JS
+      - name: Save public result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/panhandle-feed-access-test.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save Escambia River public map access result'
+            git pull --rebase
+            git push
+          fi
