@@ -20,7 +20,7 @@ jobs:
           node --input-type=module <<'JS'
           import {mkdir,writeFile} from 'node:fs/promises';
           const checks={};
-          const urls={flintSummary:'https://outage.flintemc.com/data/outageSummary.json',flintEvents:'https://outage.flintemc.com/data/outages.json',flintBounds:'https://outage.flintemc.com/data/boundaries.json',jackson:'https://outagemap.jacksonemc.com/'};
+          const urls={flintSummary:'https://outage.flintemc.com/data/outageSummary.json',flintEvents:'https://outage.flintemc.com/data/outages.json',flintBounds:'https://outage.flintemc.com/data/boundaries.json',jackson:'https://outagemap.jacksonemc.com/',satillaSummary:'https://outageviewer.satillaemc.com/data/outageSummary.json',satillaEvents:'https://outageviewer.satillaemc.com/data/outages.json',satillaBounds:'https://outageviewer.satillaemc.com/data/boundaries.json',mitchell:'https://mitchellemc.com/outage-center',oremc:'https://oms.oremc.co:8443/data/boundaries.json'};
           await Promise.all(Object.entries(urls).map(async([id,url])=>{
             try{const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(25000)});checks[id]={status:r.status,date:r.headers.get('date'),body:r.ok?(await r.text()).slice(0,1000000):null};}
             catch(e){checks[id]={error:e.message,cause:e.cause?.code};}
