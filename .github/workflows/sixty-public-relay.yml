@@ -1,0 +1,46 @@
+name: Collect public Alliant and SRP reports
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/sixty-public-relay.mjs'
+      - 'lib/sixty-public-validation.mjs'
+      - '.github/workflows/sixty-public-relay.yml'
+  schedule:
+    - cron: '4,14,24,34,44,54 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: sixty-public-relay
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Collect and validate public reports
+        id: collect
+        continue-on-error: true
+        run: node scripts/sixty-public-relay.mjs
+      - name: Save valid publications
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --ignore-errors public/alliant.json public/srp.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update public Alliant and SRP publications'
+            published=0
+            for attempt in 1 2 3; do
+              git pull --rebase
+              if git push; then published=1; break; fi
+            done
+            test "$published" = 1
+          fi
+      - name: Report collection failures
+        if: steps.collect.outcome == 'failure'
+        run: exit 1
