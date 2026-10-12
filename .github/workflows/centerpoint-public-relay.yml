@@ -11,7 +11,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: utility-relay-publications
+  group: centerpoint-public-relay
   cancel-in-progress: false
 jobs:
   collect:
@@ -31,6 +31,10 @@ jobs:
           git add public/centerpoint-tx.json
           if ! git diff --cached --quiet; then
             git commit -m 'Update public CenterPoint Texas publication'
-            git pull --rebase
-            git push
+            published=0
+            for attempt in 1 2 3; do
+              git pull --rebase
+              if git push; then published=1; break; fi
+            done
+            test "$published" = 1
           fi
