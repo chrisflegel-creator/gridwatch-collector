@@ -29,5 +29,6 @@ jobs:
             echo 'Publication unchanged'
           else
             git commit -m 'Update public Con Edison publication'
+            git pull --rebase
             git push
           fi
