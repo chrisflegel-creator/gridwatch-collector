@@ -6,11 +6,11 @@ on:
       - 'scripts/coned-public-relay.mjs'
       - '.github/workflows/coned-public-relay.yml'
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '3,13,23,33,43,53 * * * *'
 permissions:
   contents: write
 concurrency:
-  group: utility-relay-publications
+  group: coned-public-relay
   cancel-in-progress: false
 jobs:
   collect:
@@ -33,6 +33,10 @@ jobs:
             echo 'Publication unchanged'
           else
             git commit -m 'Update public Con Edison publication'
-            git pull --rebase
-            git push
+            published=0
+            for attempt in 1 2 3; do
+              git pull --rebase
+              if git push; then published=1; break; fi
+            done
+            test "$published" = 1
           fi
