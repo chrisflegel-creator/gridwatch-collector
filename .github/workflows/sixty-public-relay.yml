@@ -6,8 +6,6 @@ on:
       - 'scripts/sixty-public-relay.mjs'
       - 'lib/sixty-public-validation.mjs'
       - '.github/workflows/sixty-public-relay.yml'
-  schedule:
-    - cron: '4,14,24,34,44,54 * * * *'
 permissions:
   contents: write
 concurrency:
@@ -22,6 +20,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Prepare public browser collector
+        run: |
+          npm install --prefix "$RUNNER_TEMP/gridwatch-browser" playwright
+          "$RUNNER_TEMP/gridwatch-browser/node_modules/.bin/playwright" install chromium
+          echo "GRIDWATCH_PLAYWRIGHT_MODULE=$RUNNER_TEMP/gridwatch-browser/node_modules/playwright" >> "$GITHUB_ENV"
       - name: Collect and validate public reports
         id: collect
         continue-on-error: true
