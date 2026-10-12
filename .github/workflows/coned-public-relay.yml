@@ -1,6 +1,10 @@
 name: Collect public Con Edison reports
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/coned-public-relay.mjs'
+      - '.github/workflows/coned-public-relay.yml'
   schedule:
     - cron: '7,37 * * * *'
 permissions:
