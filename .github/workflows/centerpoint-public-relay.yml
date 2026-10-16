@@ -7,7 +7,9 @@ on:
       - 'lib/centerpoint-public-validation.mjs'
       - '.github/workflows/centerpoint-public-relay.yml'
   schedule:
-    - cron: '6,16,26,36,46,56 * * * *'
+    # Request twice as often to give delayed scheduled runs more freshness headroom.
+    # GitHub scheduling is best-effort; Gridwatch still validates source timestamps.
+    - cron: '3-58/5 * * * *'
 permissions:
   contents: write
 concurrency:
